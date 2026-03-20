@@ -249,6 +249,27 @@ def _find_recipe_sources_file(deploy_dir_slsa, recipe):
     return None
 
 
+
+def collect_builder_version(d):
+    """
+    Collect builder tool versions for the SLSA Builder.version field.
+    Includes the BitBake version and distro identity, giving verifiers
+    enough context to reproduce or audit the build platform.
+    """
+    version = {}
+
+    bb_version = d.getVar("BB_VERSION")
+    if bb_version:
+        version["bitbake"] = bb_version
+
+    distro = d.getVar("DISTRO") or ""
+    distro_version = d.getVar("DISTRO_VERSION") or ""
+    if distro:
+        version["distro"] = "%s %s" % (distro, distro_version) if distro_version else distro
+
+    return version if version else None
+
+
 def collect_external_parameters(d):
     """
     Collect user-controlled external build parameters.
@@ -335,7 +356,7 @@ def create_image_provenance(d):
         metadata.invocationId = invocation_id
         has_metadata = True
 
-    builder = oe.slsa.Builder(id=builder_id)
+    builder = oe.slsa.Builder(id=builder_id, version=collect_builder_version(d))
 
     run_details = oe.slsa.RunDetails(
         builder=builder,
