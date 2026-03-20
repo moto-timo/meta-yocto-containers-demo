@@ -65,3 +65,35 @@ python do_create_slsa_provenance_setscene() {
     sstate_setscene(d)
 }
 addtask do_create_slsa_provenance_setscene
+
+# === Source provenance task (SLSA Build L3) ===
+# Generates a separate slsa.dev/source_provenance/v1 attestation whose
+# subjects are the layer git commits used in this build.  This satisfies
+# the L3 requirement for a complete, signed source record that is
+# independent of the build provenance.
+
+python do_create_slsa_source_provenance() {
+    import oe.slsa_tasks
+    oe.slsa_tasks.create_image_source_provenance(d)
+}
+
+addtask do_create_slsa_source_provenance after do_image_complete before do_build
+
+SSTATETASKS += "do_create_slsa_source_provenance"
+SSTATE_SKIP_CREATION:task-create-slsa-source-provenance = "1"
+do_create_slsa_source_provenance[sstate-inputdirs] = "${SLSA_PROVENANCE_DEPLOY_DIR}"
+do_create_slsa_source_provenance[sstate-outputdirs] = "${DEPLOY_DIR_SLSA}"
+do_create_slsa_source_provenance[stamp-extra-info] = "${MACHINE_ARCH}"
+do_create_slsa_source_provenance[cleandirs] = "${SLSA_PROVENANCE_DEPLOY_DIR}"
+do_create_slsa_source_provenance[dirs] = "${SLSA_PROVENANCE_DEPLOY_DIR}"
+do_create_slsa_source_provenance[file-checksums] += "${SLSA_DEP_FILES}"
+do_create_slsa_source_provenance[vardeps] += "\
+    SLSA_PROVENANCE_BUILDER_ID \
+    SLSA_PROVENANCE_BUILD_TYPE \
+    SLSA_PROVENANCE_INVOCATION_ID \
+    "
+
+python do_create_slsa_source_provenance_setscene() {
+    sstate_setscene(d)
+}
+addtask do_create_slsa_source_provenance_setscene
