@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 
 INTOTO_STATEMENT_TYPE = "https://in-toto.io/Statement/v1"
 SLSA_PROVENANCE_PREDICATE_TYPE = "https://slsa.dev/provenance/v1"
+SLSA_SOURCE_PROVENANCE_PREDICATE_TYPE = "https://slsa.dev/source_provenance/v1"
 
 # Default build type URI for OpenEmbedded/Yocto image builds
 OE_BUILD_TYPE = "https://openembedded.org/slsa/image-build/v1"
@@ -129,10 +130,52 @@ class SLSAProvenance:
 
 
 @dataclass
+class SourceActor:
+    """The actor that created or published the source."""
+    id: str
+
+    def to_dict(self):
+        return {"id": self.id}
+
+
+@dataclass
+class SourceActivity:
+    """
+    Describes the activity that produced the source attestation.
+    Maps to the SLSA source_provenance/v1 'activity' field.
+    """
+    id: Optional[str] = None
+    actor: Optional[SourceActor] = None
+    context: Optional[dict] = None
+
+    def to_dict(self):
+        d = {}
+        if self.id is not None:
+            d["id"] = self.id
+        if self.actor is not None:
+            d["actor"] = self.actor.to_dict()
+        if self.context is not None:
+            d["context"] = self.context
+        return d
+
+
+@dataclass
+class SLSASourceProvenance:
+    """
+    SLSA Source Provenance v1 predicate.
+    Reference: https://slsa.dev/source-requirements
+    """
+    activity: SourceActivity
+
+    def to_dict(self):
+        return {"activity": self.activity.to_dict()}
+
+
+@dataclass
 class InTotoStatement:
     """In-toto Statement v1 envelope wrapping a SLSA provenance predicate."""
     subject: list
-    predicate: SLSAProvenance
+    predicate: object  # SLSAProvenance or SLSASourceProvenance
     _type: str = INTOTO_STATEMENT_TYPE
     predicateType: str = SLSA_PROVENANCE_PREDICATE_TYPE
 
