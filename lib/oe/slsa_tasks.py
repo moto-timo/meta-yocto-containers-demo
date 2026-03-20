@@ -355,7 +355,7 @@ def create_image_provenance(d):
     # 4. Write the provenance file
     bb.utils.mkdirhier(provenance_deploy_dir)
 
-    provenance_filename = "%s.slsa-provenance.json" % image_name
+    provenance_filename = "%s.slsa-build.json" % image_name
     provenance_path = os.path.join(provenance_deploy_dir, provenance_filename)
 
     pretty = d.getVar("SLSA_PROVENANCE_PRETTY") == "1"
@@ -368,7 +368,7 @@ def create_image_provenance(d):
 
     # 5. Create symlink with IMAGE_LINK_NAME
     if image_link_name:
-        link_name = "%s.slsa-provenance.json" % image_link_name
+        link_name = "%s.slsa-build.json" % image_link_name
         link_path = os.path.join(provenance_deploy_dir, link_name)
         if os.path.islink(link_path) or os.path.exists(link_path):
             os.remove(link_path)

@@ -48,7 +48,7 @@ addtask do_create_slsa_provenance after do_image_complete before do_build
 SSTATETASKS += "do_create_slsa_provenance"
 SSTATE_SKIP_CREATION:task-create-slsa-provenance = "1"
 do_create_slsa_provenance[sstate-inputdirs] = "${SLSA_PROVENANCE_DEPLOY_DIR}"
-do_create_slsa_provenance[sstate-outputdirs] = "${DEPLOY_DIR_IMAGE}"
+do_create_slsa_provenance[sstate-outputdirs] = "${DEPLOY_DIR_SLSA}"
 do_create_slsa_provenance[stamp-extra-info] = "${MACHINE_ARCH}"
 do_create_slsa_provenance[cleandirs] = "${SLSA_PROVENANCE_DEPLOY_DIR}"
 do_create_slsa_provenance[dirs] = "${SLSA_PROVENANCE_DEPLOY_DIR}"
