@@ -249,7 +249,6 @@ def _find_recipe_sources_file(deploy_dir_slsa, recipe):
     return None
 
 
-
 def collect_builder_version(d):
     """
     Collect builder tool versions for the SLSA Builder.version field.
@@ -396,5 +395,105 @@ def create_image_provenance(d):
         if link_path != provenance_path:
             os.symlink(
                 os.path.relpath(provenance_path, os.path.dirname(link_path)),
+                link_path,
+            )
+
+
+def create_image_source_provenance(d):
+    """
+    Generate an SLSA Source Provenance v1 (slsa.dev/source_provenance/v1)
+    in-toto statement for the current image build.
+
+    The subject is the set of OE/Yocto layers that contributed to the build,
+    each identified by its git commit.  This gives downstream consumers a
+    signed, auditable record of exactly which source revisions were used,
+    satisfying the SLSA Build L3 requirement for complete source traceability.
+
+    The output file is written to SLSA_PROVENANCE_DEPLOY_DIR (a per-task
+    staging directory) and deployed to DEPLOY_DIR_SLSA via sstate, alongside
+    the build provenance.
+    """
+    image_name = d.getVar("IMAGE_NAME")
+    image_link_name = d.getVar("IMAGE_LINK_NAME")
+    provenance_deploy_dir = d.getVar("SLSA_PROVENANCE_DEPLOY_DIR")
+    builder_id = d.getVar("SLSA_PROVENANCE_BUILDER_ID") or \
+        "https://openembedded.org/local-build"
+    invocation_id = d.getVar("SLSA_PROVENANCE_INVOCATION_ID") or None
+
+    # Build the subject list from layer revisions.
+    # Each layer whose git commit is known becomes a subject ResourceDescriptor.
+    subjects = []
+    revisions = oe.buildcfg.get_layer_revisions(d)
+    for layer_path, layer_name, branch, revision, modified in revisions:
+        if not revision or revision == "<unknown>":
+            continue
+
+        digest = {"gitCommit": revision}
+        uri = None
+        remotes = oe.buildcfg.get_metadata_git_remotes(layer_path)
+        if remotes:
+            remote_name = "origin" if "origin" in remotes else remotes[0]
+            remote_url = oe.buildcfg.get_metadata_git_remote_url(
+                layer_path, remote_name
+            )
+            if remote_url:
+                uri = remote_url
+
+        subjects.append(oe.slsa.ResourceDescriptor(
+            name=layer_name,
+            digest=digest,
+            uri=uri,
+        ))
+
+    if not subjects:
+        bb.warn("SLSA source provenance: no layer subjects found, skipping")
+        return
+
+    # Build the activity context from the image build parameters.
+    activity_context = {
+        "type": d.getVar("SLSA_PROVENANCE_BUILD_TYPE") or oe.slsa.OE_BUILD_TYPE,
+        "values": {
+            "image": d.getVar("IMAGE_BASENAME") or "",
+            "machine": d.getVar("MACHINE") or "",
+        },
+    }
+
+    activity = oe.slsa.SourceActivity(
+        id=invocation_id,
+        actor=oe.slsa.SourceActor(id=builder_id),
+        context=activity_context,
+    )
+
+    source_provenance = oe.slsa.SLSASourceProvenance(activity=activity)
+
+    statement = oe.slsa.InTotoStatement(
+        subject=subjects,
+        predicate=source_provenance,
+        predicateType=oe.slsa.SLSA_SOURCE_PROVENANCE_PREDICATE_TYPE,
+    )
+
+    # Write the file
+    bb.utils.mkdirhier(provenance_deploy_dir)
+
+    pretty = d.getVar("SLSA_PROVENANCE_PRETTY") == "1"
+    indent = 2 if pretty else None
+
+    source_filename = "%s.slsa-source.json" % image_name
+    source_path = os.path.join(provenance_deploy_dir, source_filename)
+
+    with open(source_path, "w") as f:
+        json.dump(statement.to_dict(), f, indent=indent, sort_keys=False)
+
+    bb.note("SLSA source provenance written to: %s" % source_path)
+
+    # Symlink with IMAGE_LINK_NAME
+    if image_link_name:
+        link_name = "%s.slsa-source.json" % image_link_name
+        link_path = os.path.join(provenance_deploy_dir, link_name)
+        if os.path.islink(link_path) or os.path.exists(link_path):
+            os.remove(link_path)
+        if link_path != source_path:
+            os.symlink(
+                os.path.relpath(source_path, os.path.dirname(link_path)),
                 link_path,
             )
