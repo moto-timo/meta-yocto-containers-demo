@@ -285,3 +285,124 @@ class SLSASourceProvenanceTest(SLSAProvenanceBase, OESelftestTestCase):
         activity = stmt["predicate"]["activity"]
         self.assertIn("id", activity)
         self.assertEqual(activity["id"], "https://ci.example.com/runs/42")
+
+
+class SLSADepsProvenanceTest(SLSAProvenanceBase, OESelftestTestCase):
+    """Tests for the in-toto Link deps provenance (in-toto.io/attestation/link/v0.3)."""
+
+    def _get_deps_provenance(self, target="core-image-minimal", extra_conf=""):
+        self.write_config(self._get_config(extra_conf))
+        bitbake(target)
+
+        bb_vars = get_bb_vars(
+            ["DEPLOY_DIR_SLSA", "IMAGE_LINK_NAME"],
+            target,
+        )
+        deploy_dir = bb_vars["DEPLOY_DIR_SLSA"]
+        link_name = bb_vars["IMAGE_LINK_NAME"]
+
+        deps_path = os.path.join(
+            deploy_dir, link_name + ".slsa-deps.json"
+        )
+        self.assertExists(deps_path)
+
+        with open(deps_path, "r") as f:
+            return json.load(f)
+
+    def test_deps_provenance_basic_structure(self):
+        """Verify in-toto Statement v1 wraps link/v0.3 predicate."""
+        stmt = self._get_deps_provenance()
+
+        self.assertEqual(stmt["_type"], "https://in-toto.io/Statement/v1")
+        self.assertEqual(stmt["predicateType"],
+                         "https://in-toto.io/attestation/link/v0.3")
+        self.assertIn("subject", stmt)
+        self.assertIn("predicate", stmt)
+
+    def test_deps_provenance_link_required_fields(self):
+        """Link predicate must have name, command, and materials."""
+        stmt = self._get_deps_provenance()
+        predicate = stmt["predicate"]
+
+        self.assertIn("name", predicate)
+        self.assertIn("command", predicate)
+        self.assertIn("materials", predicate)
+
+    def test_deps_provenance_subjects_are_image_artifacts(self):
+        """Subjects must be image artifacts with sha256 digests."""
+        stmt = self._get_deps_provenance()
+
+        subjects = stmt["subject"]
+        self.assertTrue(len(subjects) > 0,
+                        "Deps provenance must have at least one image subject")
+        for subj in subjects:
+            self.assertIn("name", subj)
+            self.assertIn("digest", subj)
+            self.assertIn("sha256", subj["digest"],
+                          "Image artifact subject must carry a sha256 digest")
+            self.assertEqual(len(subj["digest"]["sha256"]), 64,
+                             "sha256 must be a 64-char hex string")
+
+    def test_deps_provenance_command_contains_bitbake(self):
+        """Link command must reference bitbake and the image target."""
+        stmt = self._get_deps_provenance()
+        command = stmt["predicate"]["command"]
+
+        self.assertIsInstance(command, list)
+        self.assertTrue(len(command) > 0, "command must not be empty")
+        self.assertEqual(command[0], "bitbake",
+                         "first command element must be 'bitbake'")
+        # second element should be the image basename
+        self.assertTrue(len(command) > 1,
+                        "command must include the image target name")
+
+    def test_deps_provenance_materials_include_layers(self):
+        """Materials must include layer entries with gitCommit digests."""
+        stmt = self._get_deps_provenance()
+        materials = stmt["predicate"]["materials"]
+
+        self.assertTrue(len(materials) > 0, "materials must not be empty")
+
+        # At least the 'meta' layer must be present
+        layer_names = [m["name"] for m in materials]
+        self.assertIn("meta", layer_names,
+                      "materials must include the 'meta' layer")
+
+        # Layer entries must carry gitCommit digests
+        meta_mat = next(m for m in materials if m["name"] == "meta")
+        self.assertIn("digest", meta_mat)
+        self.assertIn("gitCommit", meta_mat["digest"],
+                      "layer material must carry a gitCommit digest")
+        self.assertEqual(len(meta_mat["digest"]["gitCommit"]), 40,
+                         "gitCommit must be a 40-char hex SHA1")
+
+    def test_deps_provenance_environment_fields(self):
+        """Link environment must include machine and distro keys."""
+        stmt = self._get_deps_provenance()
+        predicate = stmt["predicate"]
+
+        self.assertIn("environment", predicate)
+        env = predicate["environment"]
+        self.assertIn("machine", env)
+        self.assertIn("distro", env)
+
+    def test_deps_provenance_deploy_dir_is_slsa(self):
+        """Deps provenance must land in DEPLOY_DIR_SLSA, not DEPLOY_DIR_IMAGE."""
+        self.write_config(self._get_config())
+        bitbake("core-image-minimal")
+
+        bb_vars = get_bb_vars(
+            ["DEPLOY_DIR_SLSA", "DEPLOY_DIR_IMAGE", "IMAGE_LINK_NAME"],
+            "core-image-minimal",
+        )
+        slsa_dir = bb_vars["DEPLOY_DIR_SLSA"]
+        image_dir = bb_vars["DEPLOY_DIR_IMAGE"]
+        link_name = bb_vars["IMAGE_LINK_NAME"]
+
+        slsa_path = os.path.join(slsa_dir, link_name + ".slsa-deps.json")
+        image_path = os.path.join(image_dir, link_name + ".slsa-deps.json")
+
+        self.assertExists(slsa_path,
+                          "Deps provenance must be in DEPLOY_DIR_SLSA")
+        self.assertFalse(os.path.exists(image_path),
+                         "Deps provenance must NOT be placed in DEPLOY_DIR_IMAGE")
