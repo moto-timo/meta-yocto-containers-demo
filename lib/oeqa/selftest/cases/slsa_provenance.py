@@ -25,10 +25,10 @@ class SLSAProvenanceBase(object):
         bitbake(target)
 
         bb_vars = get_bb_vars(
-            ["DEPLOY_DIR_SLSA", "IMAGE_LINK_NAME"],
+            ["DEPLOY_DIR_IMAGE", "IMAGE_LINK_NAME"],
             target,
         )
-        deploy_dir = bb_vars["DEPLOY_DIR_SLSA"]
+        deploy_dir = bb_vars["DEPLOY_DIR_IMAGE"]
         link_name = bb_vars["IMAGE_LINK_NAME"]
 
         provenance_path = os.path.join(
@@ -47,10 +47,10 @@ class SLSAProvenanceBase(object):
         bitbake(target)
 
         bb_vars = get_bb_vars(
-            ["DEPLOY_DIR_SLSA", "IMAGE_LINK_NAME"],
+            ["DEPLOY_DIR_IMAGE", "IMAGE_LINK_NAME"],
             target,
         )
-        deploy_dir = bb_vars["DEPLOY_DIR_SLSA"]
+        deploy_dir = bb_vars["DEPLOY_DIR_IMAGE"]
         link_name = bb_vars["IMAGE_LINK_NAME"]
 
         source_path = os.path.join(
@@ -190,26 +190,26 @@ class SLSAProvenanceTest(SLSAProvenanceBase, OESelftestTestCase):
         # BitBake version should be a non-empty string like "2.8.0"
         self.assertTrue(len(version["bitbake"]) > 0)
 
-    def test_provenance_deploy_dir_is_slsa(self):
-        """L3: build provenance must land in DEPLOY_DIR_SLSA, not DEPLOY_DIR_IMAGE."""
+    def test_provenance_deploy_dir_is_images(self):
+        """Build provenance must land in DEPLOY_DIR_IMAGE alongside the image."""
         self.write_config(self._get_config())
         bitbake("core-image-minimal")
 
         bb_vars = get_bb_vars(
-            ["DEPLOY_DIR_SLSA", "DEPLOY_DIR_IMAGE", "IMAGE_LINK_NAME"],
+            ["DEPLOY_DIR_IMAGE", "DEPLOY_DIR_SLSA", "IMAGE_LINK_NAME"],
             "core-image-minimal",
         )
-        slsa_dir = bb_vars["DEPLOY_DIR_SLSA"]
         image_dir = bb_vars["DEPLOY_DIR_IMAGE"]
+        slsa_dir = bb_vars["DEPLOY_DIR_SLSA"]
         link_name = bb_vars["IMAGE_LINK_NAME"]
 
-        slsa_path = os.path.join(slsa_dir, link_name + ".slsa-build.json")
         image_path = os.path.join(image_dir, link_name + ".slsa-build.json")
+        slsa_path = os.path.join(slsa_dir, link_name + ".slsa-build.json")
 
-        self.assertExists(slsa_path,
-                          "Build provenance must be in DEPLOY_DIR_SLSA")
-        self.assertFalse(os.path.exists(image_path),
-                         "Build provenance must NOT be placed in DEPLOY_DIR_IMAGE")
+        self.assertExists(image_path,
+                          "Build provenance must be in DEPLOY_DIR_IMAGE")
+        self.assertFalse(os.path.exists(slsa_path),
+                         "Build provenance must NOT be placed in DEPLOY_DIR_SLSA")
 
 
 class SLSASourceProvenanceTest(SLSAProvenanceBase, OESelftestTestCase):
@@ -295,10 +295,10 @@ class SLSADepsProvenanceTest(SLSAProvenanceBase, OESelftestTestCase):
         bitbake(target)
 
         bb_vars = get_bb_vars(
-            ["DEPLOY_DIR_SLSA", "IMAGE_LINK_NAME"],
+            ["DEPLOY_DIR_IMAGE", "IMAGE_LINK_NAME"],
             target,
         )
-        deploy_dir = bb_vars["DEPLOY_DIR_SLSA"]
+        deploy_dir = bb_vars["DEPLOY_DIR_IMAGE"]
         link_name = bb_vars["IMAGE_LINK_NAME"]
 
         deps_path = os.path.join(
@@ -386,23 +386,23 @@ class SLSADepsProvenanceTest(SLSAProvenanceBase, OESelftestTestCase):
         self.assertIn("machine", env)
         self.assertIn("distro", env)
 
-    def test_deps_provenance_deploy_dir_is_slsa(self):
-        """Deps provenance must land in DEPLOY_DIR_SLSA, not DEPLOY_DIR_IMAGE."""
+    def test_deps_provenance_deploy_dir_is_images(self):
+        """Deps provenance must land in DEPLOY_DIR_IMAGE alongside the image."""
         self.write_config(self._get_config())
         bitbake("core-image-minimal")
 
         bb_vars = get_bb_vars(
-            ["DEPLOY_DIR_SLSA", "DEPLOY_DIR_IMAGE", "IMAGE_LINK_NAME"],
+            ["DEPLOY_DIR_IMAGE", "DEPLOY_DIR_SLSA", "IMAGE_LINK_NAME"],
             "core-image-minimal",
         )
-        slsa_dir = bb_vars["DEPLOY_DIR_SLSA"]
         image_dir = bb_vars["DEPLOY_DIR_IMAGE"]
+        slsa_dir = bb_vars["DEPLOY_DIR_SLSA"]
         link_name = bb_vars["IMAGE_LINK_NAME"]
 
-        slsa_path = os.path.join(slsa_dir, link_name + ".slsa-deps.json")
         image_path = os.path.join(image_dir, link_name + ".slsa-deps.json")
+        slsa_path = os.path.join(slsa_dir, link_name + ".slsa-deps.json")
 
-        self.assertExists(slsa_path,
-                          "Deps provenance must be in DEPLOY_DIR_SLSA")
-        self.assertFalse(os.path.exists(image_path),
-                         "Deps provenance must NOT be placed in DEPLOY_DIR_IMAGE")
+        self.assertExists(image_path,
+                          "Deps provenance must be in DEPLOY_DIR_IMAGE")
+        self.assertFalse(os.path.exists(slsa_path),
+                         "Deps provenance must NOT be placed in DEPLOY_DIR_SLSA")
