@@ -39,6 +39,7 @@ ROOTFS_POSTUNINSTALL_COMMAND[vardepsexclude] += "slsa_collect_rootfs_packages"
 # === Main provenance generation task ===
 
 python do_create_slsa_provenance() {
+    slsa_ensure_oe_path(d)
     import oe.slsa_tasks
     oe.slsa_tasks.create_image_provenance(d)
 }
@@ -73,6 +74,7 @@ addtask do_create_slsa_provenance_setscene
 # independent of the build provenance.
 
 python do_create_slsa_source_provenance() {
+    slsa_ensure_oe_path(d)
     import oe.slsa_tasks
     oe.slsa_tasks.create_image_source_provenance(d)
 }
@@ -105,6 +107,7 @@ addtask do_create_slsa_source_provenance_setscene
 # dependency manifest is cryptographically bound to the produced container.
 
 python do_create_slsa_deps_provenance() {
+    slsa_ensure_oe_path(d)
     import oe.slsa_tasks
     oe.slsa_tasks.create_image_deps_provenance(d)
 }

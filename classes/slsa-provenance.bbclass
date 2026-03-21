@@ -52,9 +52,33 @@ SLSA_DEP_FILES = "\
     ${META_YOCTO_CONTAINERS_DEMO_LAYER_DIR}/lib/oe/slsa_tasks.py:True \
     "
 
+# === Python path helper ===
+#
+# addpylib (layer.conf) is the right mechanism for extending the oe.*
+# namespace, but it relies on oe.__path__ being updated before the first
+# use of oe.slsa_tasks / oe.slsa.  In some BitBake worker configurations
+# the update may arrive after oe has already been imported, causing a
+# "No module named 'oe.slsa_tasks'" error.
+#
+# slsa_ensure_oe_path() is a belt-and-suspenders guard: it explicitly
+# inserts our lib/oe/ directory into oe.__path__ if it isn't there yet.
+# It is idempotent and costs essentially nothing when addpylib already
+# did its job.
+
+def slsa_ensure_oe_path(d):
+    import os
+    layer = d.getVar("META_YOCTO_CONTAINERS_DEMO_LAYER_DIR")
+    if not layer:
+        return
+    oe_dir = os.path.join(layer, "lib", "oe")
+    import oe
+    if oe_dir not in list(oe.__path__):
+        oe.__path__.insert(0, oe_dir)
+
 # === Per-recipe source collection task ===
 
 python do_collect_slsa_sources() {
+    slsa_ensure_oe_path(d)
     import oe.slsa_tasks
     oe.slsa_tasks.collect_recipe_sources(d)
 }
