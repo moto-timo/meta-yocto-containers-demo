@@ -1,9 +1,11 @@
 #
-# Generates SLSA Build L2 v1.0 provenance attestation for image builds.
+# Generates SLSA Build provenance attestations for image builds.
 #
-# The provenance is an in-toto Statement v1 JSON document with a SLSA
-# Provenance v1 predicate, written as a sidecar file next to image
-# artifacts in DEPLOY_DIR_IMAGE.
+# Produces three in-toto Statement v1 JSON documents deployed to
+# DEPLOY_DIR_SLSA (${DEPLOY_DIR}/slsa):
+#   *.slsa-build.json  - SLSA Build Provenance v1
+#   *.slsa-source.json - SLSA Source Provenance v1
+#   *.slsa-deps.json   - in-toto Link predicate v0.3 (full dep graph)
 #
 # Usage: add INHERIT += "slsa-provenance" to your conf file
 #
@@ -46,8 +48,8 @@ SLSA_DEPLOY = "${SLSA_DIR}/deploy"
 # === File checksum dependencies ===
 
 SLSA_DEP_FILES = "\
-    ${COREBASE}/meta/lib/oe/slsa.py:True \
-    ${COREBASE}/meta/lib/oe/slsa_tasks.py:True \
+    ${META_YOCTO_CONTAINERS_DEMO_LAYER_DIR}/lib/oe/slsa.py:True \
+    ${META_YOCTO_CONTAINERS_DEMO_LAYER_DIR}/lib/oe/slsa_tasks.py:True \
     "
 
 # === Per-recipe source collection task ===
