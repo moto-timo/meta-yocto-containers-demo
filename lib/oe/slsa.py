@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 INTOTO_STATEMENT_TYPE = "https://in-toto.io/Statement/v1"
 SLSA_PROVENANCE_PREDICATE_TYPE = "https://slsa.dev/provenance/v1"
 SLSA_SOURCE_PROVENANCE_PREDICATE_TYPE = "https://slsa.dev/source_provenance/v1"
+INTOTO_LINK_PREDICATE_TYPE = "https://in-toto.io/attestation/link/v0.3"
 
 # Default build type URI for OpenEmbedded/Yocto image builds
 OE_BUILD_TYPE = "https://openembedded.org/slsa/image-build/v1"
@@ -169,6 +170,36 @@ class SLSASourceProvenance:
 
     def to_dict(self):
         return {"activity": self.activity.to_dict()}
+
+
+@dataclass
+class InTotoLinkPredicate:
+    """
+    In-toto Link attestation predicate (v0.3).
+    Reference: https://github.com/in-toto/attestation/blob/main/spec/predicates/link.md
+
+    Records the complete set of materials (inputs) consumed by a build step,
+    the command that was run, and any byproducts produced.  Used here to
+    capture the resolved dependency graph of a Yocto image build as a
+    signed, auditable artifact.
+    """
+    name: str
+    command: list = field(default_factory=list)
+    materials: list = field(default_factory=list)   # list of ResourceDescriptor
+    byproducts: list = field(default_factory=list)  # list of ResourceDescriptor
+    environment: Optional[dict] = None
+
+    def to_dict(self):
+        d = {
+            "name": self.name,
+            "command": self.command,
+            "materials": [m.to_dict() for m in self.materials],
+        }
+        if self.byproducts:
+            d["byproducts"] = [b.to_dict() for b in self.byproducts]
+        if self.environment is not None:
+            d["environment"] = self.environment
+        return d
 
 
 @dataclass
