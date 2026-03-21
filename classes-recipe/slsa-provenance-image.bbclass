@@ -97,3 +97,34 @@ python do_create_slsa_source_provenance_setscene() {
     sstate_setscene(d)
 }
 addtask do_create_slsa_source_provenance_setscene
+
+# === Dependency provenance task (SLSA Build L3) ===
+# Generates an in-toto Link attestation (in-toto.io/attestation/link/v0.3)
+# recording every layer revision and resolved recipe source URI consumed by
+# the build.  The image artifacts are the statement subjects, so the signed
+# dependency manifest is cryptographically bound to the produced container.
+
+python do_create_slsa_deps_provenance() {
+    import oe.slsa_tasks
+    oe.slsa_tasks.create_image_deps_provenance(d)
+}
+
+addtask do_create_slsa_deps_provenance after do_image_complete before do_build
+
+SSTATETASKS += "do_create_slsa_deps_provenance"
+SSTATE_SKIP_CREATION:task-create-slsa-deps-provenance = "1"
+do_create_slsa_deps_provenance[sstate-inputdirs] = "${SLSA_PROVENANCE_DEPLOY_DIR}"
+do_create_slsa_deps_provenance[sstate-outputdirs] = "${DEPLOY_DIR_SLSA}"
+do_create_slsa_deps_provenance[stamp-extra-info] = "${MACHINE_ARCH}"
+do_create_slsa_deps_provenance[cleandirs] = "${SLSA_PROVENANCE_DEPLOY_DIR}"
+do_create_slsa_deps_provenance[dirs] = "${SLSA_PROVENANCE_DEPLOY_DIR}"
+do_create_slsa_deps_provenance[recrdeptask] += "do_collect_slsa_sources"
+do_create_slsa_deps_provenance[file-checksums] += "${SLSA_DEP_FILES}"
+do_create_slsa_deps_provenance[vardeps] += "\
+    SLSA_PROVENANCE_BUILD_TYPE \
+    "
+
+python do_create_slsa_deps_provenance_setscene() {
+    sstate_setscene(d)
+}
+addtask do_create_slsa_deps_provenance_setscene

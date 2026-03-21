@@ -497,3 +497,77 @@ def create_image_source_provenance(d):
                 os.path.relpath(source_path, os.path.dirname(link_path)),
                 link_path,
             )
+
+
+def create_image_deps_provenance(d):
+    """
+    Generate an in-toto Link attestation (in-toto.io/attestation/link/v0.3)
+    for the current image build.
+
+    The link predicate records the complete set of materials (inputs) consumed
+    by the build: every OE/Yocto layer and every resolved recipe source URI
+    that contributed to the image.  The image artifacts become the subjects of
+    the in-toto Statement, tying the signed dependency manifest directly to the
+    produced container image.
+
+    The output file (*.slsa-deps.json) is deployed to DEPLOY_DIR_SLSA via
+    sstate, completing the three-file provenance set alongside the build
+    (*.slsa-build.json) and source (*.slsa-source.json) attestations.
+    """
+    image_name = d.getVar("IMAGE_NAME")
+    image_link_name = d.getVar("IMAGE_LINK_NAME")
+    provenance_deploy_dir = d.getVar("SLSA_PROVENANCE_DEPLOY_DIR")
+    image_basename = d.getVar("IMAGE_BASENAME") or image_name
+
+    # 1. Subjects: the produced image artifacts with sha256 digests
+    subjects = collect_image_subjects(d)
+    if not subjects:
+        bb.warn("SLSA deps provenance: no image subjects found, skipping")
+        return
+
+    # 2. Materials: layer revisions + per-recipe source URIs
+    materials = collect_layer_dependencies(d)
+    materials.extend(collect_recipe_source_dependencies(d))
+
+    # 3. Build the in-toto Link predicate
+    link = oe.slsa.InTotoLinkPredicate(
+        name="build",
+        command=["bitbake", image_basename],
+        materials=materials,
+        environment={
+            "machine": d.getVar("MACHINE") or "",
+            "distro": d.getVar("DISTRO") or "",
+        },
+    )
+
+    statement = oe.slsa.InTotoStatement(
+        subject=subjects,
+        predicate=link,
+        predicateType=oe.slsa.INTOTO_LINK_PREDICATE_TYPE,
+    )
+
+    # 4. Write the file
+    bb.utils.mkdirhier(provenance_deploy_dir)
+
+    pretty = d.getVar("SLSA_PROVENANCE_PRETTY") == "1"
+    indent = 2 if pretty else None
+
+    deps_filename = "%s.slsa-deps.json" % image_name
+    deps_path = os.path.join(provenance_deploy_dir, deps_filename)
+
+    with open(deps_path, "w") as f:
+        json.dump(statement.to_dict(), f, indent=indent, sort_keys=False)
+
+    bb.note("SLSA deps provenance written to: %s" % deps_path)
+
+    # 5. Symlink with IMAGE_LINK_NAME
+    if image_link_name:
+        link_name = "%s.slsa-deps.json" % image_link_name
+        link_path = os.path.join(provenance_deploy_dir, link_name)
+        if os.path.islink(link_path) or os.path.exists(link_path):
+            os.remove(link_path)
+        if link_path != deps_path:
+            os.symlink(
+                os.path.relpath(deps_path, os.path.dirname(link_path)),
+                link_path,
+            )
