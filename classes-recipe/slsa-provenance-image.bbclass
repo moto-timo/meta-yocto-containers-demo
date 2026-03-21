@@ -6,9 +6,20 @@
 # SPDX-License-Identifier: MIT
 #
 
-# Deploy directory for provenance files (separate from IMGDEPLOYDIR to
-# avoid sstate conflicts with do_image_complete)
-SLSA_PROVENANCE_DEPLOY_DIR = "${WORKDIR}/slsa-deploy"
+# Per-task staging directories for provenance files.
+#
+# Each provenance task MUST have its own isolated staging directory so
+# that sstate can track ownership of output files independently.  Using
+# a single shared directory causes "files already exist in manifest"
+# sstate conflicts when any two of the three tasks run concurrently
+# (they all schedule after do_image_complete with no mutual dependency).
+#
+# slsa_tasks.py reads SLSA_PROVENANCE_DEPLOY_DIR; each task body calls
+# d.setVar() to point that variable at its own staging dir before
+# invoking the library function.
+SLSA_BUILD_PROV_STAGEDIR = "${WORKDIR}/slsa-build-stage"
+SLSA_SOURCE_PROV_STAGEDIR = "${WORKDIR}/slsa-source-stage"
+SLSA_DEPS_PROV_STAGEDIR = "${WORKDIR}/slsa-deps-stage"
 
 # Saved rootfs package list for recipe source mapping
 SLSA_ROOTFS_PACKAGES = "${SLSA_DIR}/rootfs-packages.json"
@@ -40,6 +51,7 @@ ROOTFS_POSTUNINSTALL_COMMAND[vardepsexclude] += "slsa_collect_rootfs_packages"
 
 python do_create_slsa_provenance() {
     slsa_ensure_oe_path(d)
+    d.setVar("SLSA_PROVENANCE_DEPLOY_DIR", d.getVar("SLSA_BUILD_PROV_STAGEDIR"))
     import oe.slsa_tasks
     oe.slsa_tasks.create_image_provenance(d)
 }
@@ -48,11 +60,11 @@ addtask do_create_slsa_provenance after do_image_complete before do_build
 
 SSTATETASKS += "do_create_slsa_provenance"
 SSTATE_SKIP_CREATION:task-create-slsa-provenance = "1"
-do_create_slsa_provenance[sstate-inputdirs] = "${SLSA_PROVENANCE_DEPLOY_DIR}"
+do_create_slsa_provenance[sstate-inputdirs] = "${SLSA_BUILD_PROV_STAGEDIR}"
 do_create_slsa_provenance[sstate-outputdirs] = "${DEPLOY_DIR_SLSA}"
 do_create_slsa_provenance[stamp-extra-info] = "${MACHINE_ARCH}"
-do_create_slsa_provenance[cleandirs] = "${SLSA_PROVENANCE_DEPLOY_DIR}"
-do_create_slsa_provenance[dirs] = "${SLSA_PROVENANCE_DEPLOY_DIR}"
+do_create_slsa_provenance[cleandirs] = "${SLSA_BUILD_PROV_STAGEDIR}"
+do_create_slsa_provenance[dirs] = "${SLSA_BUILD_PROV_STAGEDIR}"
 do_create_slsa_provenance[recrdeptask] += "do_collect_slsa_sources"
 do_create_slsa_provenance[file-checksums] += "${SLSA_DEP_FILES}"
 do_create_slsa_provenance[vardeps] += "\
@@ -75,6 +87,7 @@ addtask do_create_slsa_provenance_setscene
 
 python do_create_slsa_source_provenance() {
     slsa_ensure_oe_path(d)
+    d.setVar("SLSA_PROVENANCE_DEPLOY_DIR", d.getVar("SLSA_SOURCE_PROV_STAGEDIR"))
     import oe.slsa_tasks
     oe.slsa_tasks.create_image_source_provenance(d)
 }
@@ -83,11 +96,11 @@ addtask do_create_slsa_source_provenance after do_image_complete before do_build
 
 SSTATETASKS += "do_create_slsa_source_provenance"
 SSTATE_SKIP_CREATION:task-create-slsa-source-provenance = "1"
-do_create_slsa_source_provenance[sstate-inputdirs] = "${SLSA_PROVENANCE_DEPLOY_DIR}"
+do_create_slsa_source_provenance[sstate-inputdirs] = "${SLSA_SOURCE_PROV_STAGEDIR}"
 do_create_slsa_source_provenance[sstate-outputdirs] = "${DEPLOY_DIR_SLSA}"
 do_create_slsa_source_provenance[stamp-extra-info] = "${MACHINE_ARCH}"
-do_create_slsa_source_provenance[cleandirs] = "${SLSA_PROVENANCE_DEPLOY_DIR}"
-do_create_slsa_source_provenance[dirs] = "${SLSA_PROVENANCE_DEPLOY_DIR}"
+do_create_slsa_source_provenance[cleandirs] = "${SLSA_SOURCE_PROV_STAGEDIR}"
+do_create_slsa_source_provenance[dirs] = "${SLSA_SOURCE_PROV_STAGEDIR}"
 do_create_slsa_source_provenance[file-checksums] += "${SLSA_DEP_FILES}"
 do_create_slsa_source_provenance[vardeps] += "\
     SLSA_PROVENANCE_BUILDER_ID \
@@ -108,6 +121,7 @@ addtask do_create_slsa_source_provenance_setscene
 
 python do_create_slsa_deps_provenance() {
     slsa_ensure_oe_path(d)
+    d.setVar("SLSA_PROVENANCE_DEPLOY_DIR", d.getVar("SLSA_DEPS_PROV_STAGEDIR"))
     import oe.slsa_tasks
     oe.slsa_tasks.create_image_deps_provenance(d)
 }
@@ -116,11 +130,11 @@ addtask do_create_slsa_deps_provenance after do_image_complete before do_build
 
 SSTATETASKS += "do_create_slsa_deps_provenance"
 SSTATE_SKIP_CREATION:task-create-slsa-deps-provenance = "1"
-do_create_slsa_deps_provenance[sstate-inputdirs] = "${SLSA_PROVENANCE_DEPLOY_DIR}"
+do_create_slsa_deps_provenance[sstate-inputdirs] = "${SLSA_DEPS_PROV_STAGEDIR}"
 do_create_slsa_deps_provenance[sstate-outputdirs] = "${DEPLOY_DIR_SLSA}"
 do_create_slsa_deps_provenance[stamp-extra-info] = "${MACHINE_ARCH}"
-do_create_slsa_deps_provenance[cleandirs] = "${SLSA_PROVENANCE_DEPLOY_DIR}"
-do_create_slsa_deps_provenance[dirs] = "${SLSA_PROVENANCE_DEPLOY_DIR}"
+do_create_slsa_deps_provenance[cleandirs] = "${SLSA_DEPS_PROV_STAGEDIR}"
+do_create_slsa_deps_provenance[dirs] = "${SLSA_DEPS_PROV_STAGEDIR}"
 do_create_slsa_deps_provenance[recrdeptask] += "do_collect_slsa_sources"
 do_create_slsa_deps_provenance[file-checksums] += "${SLSA_DEP_FILES}"
 do_create_slsa_deps_provenance[vardeps] += "\
