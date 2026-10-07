@@ -1,0 +1,25 @@
+# Monitoring dashboard - upstream nginx image, our page bind-mounted into webroot.
+[Unit]
+Description=IoT Monitoring Dashboard (upstream nginx + overlay page)
+Requires=iot-image-import.service
+After=iot-image-import.service iot-mosquitto.service
+Wants=iot-mosquitto.service
+
+[Container]
+ContainerName=nginx-dashboard
+Image=docker.io/library/nginx:1.30
+Pull=never
+# Host networking: nginx binds its listen port directly on the host.
+Network=host
+# Overlay the main config (no listen 80 / no user directive) + a server block
+# on unprivileged 8080 for the nonroot image, plus our dashboard page.
+Volume=/usr/share/iot-gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+Volume=/usr/share/iot-gateway/default.conf:/etc/nginx/conf.d/default.conf:ro
+Volume=/usr/share/iot-gateway/index.html:/usr/share/nginx/html/index.html:ro
+
+[Service]
+Restart=always
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target default.target

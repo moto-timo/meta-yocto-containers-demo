@@ -1,0 +1,25 @@
+# Mosquitto MQTT broker - upstream image, our config bind-mounted in.
+[Unit]
+Description=Mosquitto MQTT Broker (upstream image + overlay config)
+Requires=iot-image-import.service
+After=iot-image-import.service
+
+[Container]
+ContainerName=mosquitto
+# Imported into local storage at first boot by iot-image-import.sh. A bare
+# name:tag normalizes to the docker.io/library namespace in podman storage.
+Image=docker.io/library/mosquitto:2
+Pull=never
+# Host networking: broker binds 1883/9001 directly on the host. Avoids
+# netavark/nftables (not available in this kernel) and needs no port DNAT.
+Network=host
+# Overlay our config (1883 + 9001 websockets, remote access) over the image's
+# default. This image reads /etc/mosquitto/mosquitto.conf (confirmed via logs).
+Volume=/usr/share/iot-gateway/mosquitto.conf:/etc/mosquitto/mosquitto.conf:ro
+
+[Service]
+Restart=always
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target default.target

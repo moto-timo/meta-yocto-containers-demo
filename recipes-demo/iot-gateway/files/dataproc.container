@@ -1,0 +1,26 @@
+# Sensor data processor - upstream python image, our app dir bind-mounted in.
+[Unit]
+Description=IoT Sensor Data Processor (upstream python + overlay app)
+Requires=iot-image-import.service iot-mosquitto.service
+After=iot-image-import.service iot-mosquitto.service
+
+[Container]
+ContainerName=dataproc
+Image=docker.io/library/python:3
+Pull=never
+# Host networking: reaches the broker on localhost (no bridge DNS needed).
+Network=host
+# App dir holds sensor-processor.py plus a vendored (pure-python) paho package.
+Volume=/usr/share/iot-gateway/app:/opt/app:ro
+Environment=PYTHONPATH=/opt/app
+Environment=MQTT_HOST=localhost
+Environment=MQTT_PORT=1883
+# Override CMD; python:3 has no ENTRYPOINT so this is the full command.
+Exec=python3 /opt/app/sensor-processor.py
+
+[Service]
+Restart=always
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target default.target
