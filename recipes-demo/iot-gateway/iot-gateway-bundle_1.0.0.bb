@@ -35,3 +35,9 @@ CONTAINER_DIGESTS[registry.yocto.io_library_python_3]     = "sha256:8bf7d869b34e
 python __anonymous() {
     d.delVarFlag('do_compile', 'mcdepends')
 }
+
+# NOTE: You need to accept licenses for the registry.yocto.io containers
+# A good place to do this is conf/local.conf
+# CONTAINER_FLAGS_ACCEPTED:pn-iot-gateway-bundle += "registry.yocto.io/library/mosquitto"
+# CONTAINER_FLAGS_ACCEPTED:pn-iot-gateway-bundle += "registry.yocto.io/library/nginx"
+# CONTAINER_FLAGS_ACCEPTED:pn-iot-gateway-bundle += "registry.yocto.io/library/python"
