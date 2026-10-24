@@ -9,8 +9,8 @@ LIC_FILES_CHKSUM = "file://src/${GO_IMPORT}/LICENSE;md5=86d3f3a95c324c9479bd8986
 GO_IMPORT = "github.com/aquasecurity/trivy"
 GO_INSTALL = "${GO_IMPORT}/cmd/trivy"
 SRC_URI = "git://${GO_IMPORT};protocol=https;nobranch=1;destsuffix=${GO_SRCURI_DESTSUFFIX}"
-PV = "0.69.3+git"
-SRCREV = "6fb20c8edd70745d6b34bff0387b53b03c8a760a"
+PV = "0.76.1"
+SRCREV = "e713f67f7d54decdcd9b3132c9751833dcced698"
 
 require ${BPN}-licenses.inc
 require ${BPN}-go-mods.inc
