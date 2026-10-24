@@ -1,12 +1,10 @@
 # Mosquitto MQTT broker - upstream image, our config bind-mounted in.
 [Unit]
 Description=Mosquitto MQTT Broker (upstream image + overlay config)
-Requires=iot-image-import.service
-After=iot-image-import.service
 
 [Container]
 ContainerName=mosquitto
-# Imported into local storage at first boot by iot-image-import.sh. A bare
+# Imported into podman storage at build time by container-cross-install. A bare
 # name:tag normalizes to the docker.io/library namespace in podman storage.
 Image=docker.io/library/mosquitto:2
 Pull=never

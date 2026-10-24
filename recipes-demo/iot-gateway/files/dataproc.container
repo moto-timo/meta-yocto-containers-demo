@@ -1,8 +1,8 @@
 # Sensor data processor - upstream python image, our app dir bind-mounted in.
 [Unit]
 Description=IoT Sensor Data Processor (upstream python + overlay app)
-Requires=iot-image-import.service iot-mosquitto.service
-After=iot-image-import.service iot-mosquitto.service
+Requires=iot-mosquitto.service
+After=iot-mosquitto.service
 
 [Container]
 ContainerName=dataproc

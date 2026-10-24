@@ -1,8 +1,7 @@
 # Monitoring dashboard - upstream nginx image, our page bind-mounted into webroot.
 [Unit]
 Description=IoT Monitoring Dashboard (upstream nginx + overlay page)
-Requires=iot-image-import.service
-After=iot-image-import.service iot-mosquitto.service
+After=iot-mosquitto.service
 Wants=iot-mosquitto.service
 
 [Container]

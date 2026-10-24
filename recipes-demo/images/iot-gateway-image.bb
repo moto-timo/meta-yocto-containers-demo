@@ -6,7 +6,7 @@ Podman Quadlet bind-mounts; all three start automatically on boot."
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/COPYING.MIT;md5=3da9cfbcb788c80a0384361b4de20420"
 
-inherit core-image
+inherit core-image container-cross-install
 
 # --- Distro integration --------------------------------------------------
 # The iot-gateway.inc sets CONTAINER_PROFILE, DISTRO_FEATURES, and QEMU
@@ -24,18 +24,13 @@ IMAGE_INSTALL = " \
 # Container runtime (crun, netavark, aardvark-dns pulled via podman RDEPENDS)
 IMAGE_INSTALL:append = " \
     podman \
-    skopeo \
     netavark \
     aardvark-dns \
     container-host-config \
 "
 
 # Upstream container images (bundle) + runtime overlay assets & Quadlet units.
-# NOTE: we deliberately do NOT inherit container-cross-install. Its build-time
-# QEMU vrunner import did not land in this machine's storage, and it rm -rf's
-# the bundle payload. Instead iot-gateway-assets ships a first-boot oneshot that
-# imports the bundle's OCI payload with the target's own skopeo (see
-# iot-image-import.sh) — deterministic and multiconfig-independent.
+# container-cross-install imports the bundle into podman storage at build time.
 IMAGE_INSTALL:append = " iot-gateway-bundle iot-gateway-assets"
 
 # Debugging / demo convenience

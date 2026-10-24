@@ -54,9 +54,10 @@ Recipes:
   - recipes-demo/iot-gateway/iot-gateway-bundle_1.0.0.bb: bundles the three
     images, pinned by digest, with the container-bundle class
   - recipes-demo/iot-gateway/iot-gateway-assets_1.0.0.bb: configuration,
-    application, Quadlet files, and a first-boot service that imports the
-    bundled images into Podman storage
-  - recipes-demo/images/iot-gateway-image.bb: the gateway image
+    application and Quadlet files
+  - recipes-demo/images/iot-gateway-image.bb: the gateway image. It inherits
+    container-cross-install, which imports the bundled images into Podman
+    storage at build time
   - conf/distro/include/iot-gateway.inc: Podman, crun and systemd settings
 
 Building and running

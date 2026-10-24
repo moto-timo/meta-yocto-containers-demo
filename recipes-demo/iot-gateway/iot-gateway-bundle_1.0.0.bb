@@ -25,17 +25,6 @@ CONTAINER_DIGESTS[registry.yocto.io_library_python_3]     = "sha256:8bf7d869b34e
 # Runtime follows CONTAINER_PROFILE (podman) automatically; no autostart here
 # because the assets recipe ships custom Quadlet units with mounts/ports.
 
-# container-bundle couples do_compile to the vruntime multiconfig initramfs
-# images (vdkr/vpdmn) via mcdepends. Those are only needed for the build-time
-# container-cross-install import, which we do NOT use (we import at first boot
-# with the target's own skopeo). Drop the mcdepends so the demo doesn't drag in
-# — and fail on — those images' do_sbom_cve_check. do_compile here only copies
-# the fetched OCI dirs, so it needs nothing from the multiconfig.
-# Runs after the class's __anonymous, so it wins.
-python __anonymous() {
-    d.delVarFlag('do_compile', 'mcdepends')
-}
-
 # NOTE: You need to accept licenses for the registry.yocto.io containers
 # A good place to do this is conf/local.conf
 # CONTAINER_FLAGS_ACCEPTED:pn-iot-gateway-bundle += "registry.yocto.io/library/mosquitto"
