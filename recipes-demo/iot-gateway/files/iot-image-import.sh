@@ -1,7 +1,8 @@
 #!/bin/sh
 # First-boot import of the bundled upstream OCI images into podman storage.
 # Reads the container-bundle payload the iot-gateway-bundle package left in the
-# rootfs and imports each image under its short ref (e.g. localhost/nginx:1.30).
+# rootfs and imports each image under the ref recorded in the bundle's .refs
+# file (e.g. nginx:1.30, which podman stores as docker.io/library/nginx:1.30).
 set -e
 
 BASE=/usr/share/container-bundles
