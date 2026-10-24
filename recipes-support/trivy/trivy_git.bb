@@ -4,7 +4,7 @@ misconfigurations, secrets, and SBOM in containers, Kubernetes, code \
 repositories, clouds, and more."
 HOMEPAGE = "https://github.com/aquasecurity/trivy"
 LICENSE = "Apache-2.0"
-LIC_FILES_CHKSUM = "file://src/${GO_IMPORT}/LICENSE;md5=3b83ef96387f14655fc854ddc3c6bd57"
+LIC_FILES_CHKSUM = "file://src/${GO_IMPORT}/LICENSE;md5=86d3f3a95c324c9479bd8986968f4327"
 
 GO_IMPORT = "github.com/aquasecurity/trivy"
 GO_INSTALL = "${GO_IMPORT}/cmd/trivy"
