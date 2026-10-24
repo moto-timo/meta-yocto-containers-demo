@@ -1,41 +1,110 @@
-This README file contains information on the contents of the meta-yocto-containers-demo layer.
+meta-yocto-containers-demo
+==========================
 
-Please see the corresponding sections below for details.
+Demonstrations of building, bundling and securing OCI containers with the
+Yocto Project and meta-virtualization:
+
+  - iot-gateway-image: an IoT edge gateway that runs three Yocto Project
+    Reference Containers (mosquitto, nginx, python) under Podman
+  - SLSA provenance: the slsa-provenance and slsa-provenance-image classes
+    generate in-toto/SLSA provenance attestations for images
+  - grype and trivy: vulnerability scanners for container images
+
+The demos are not hardened for production use. For example, the gateway's
+MQTT broker accepts anonymous connections and the image allows an empty root
+password.
+
 
 Dependencies
 ============
 
-  URI: <first dependency>
-  branch: <branch name>
+  URI: https://git.openembedded.org/openembedded-core
+  layers: meta
+  branch: master
 
-  URI: <second dependency>
-  branch: <branch name>
+  URI: https://git.openembedded.org/bitbake
+  branch: master
 
-  .
-  .
-  .
+  URI: https://git.openembedded.org/meta-openembedded
+  layers: meta-oe, meta-filesystems, meta-networking, meta-python,
+          meta-webserver
+  branch: master
 
-Patches
-=======
-
-Please submit any patches against the meta-yocto-containers-demo layer to the xxxx mailing list (xxxx@zzzz.org)
-and cc: the maintainer:
-
-Maintainer: XXX YYYYYY <xxx.yyyyyy@zzzzz.com>
-
-Table of Contents
-=================
-
-  I. Adding the meta-yocto-containers-demo layer to your build
- II. Misc
+  URI: https://git.yoctoproject.org/meta-virtualization
+  branch: master
 
 
-I. Adding the meta-yocto-containers-demo layer to your build
-=================================================
+IoT gateway demo
+================
 
-Run 'bitbake-layers add-layer meta-yocto-containers-demo'
+The gateway runs three unmodified containers from registry.yocto.io/library
+as Podman Quadlet services:
 
-II. Misc
-========
+  - mosquitto: MQTT broker on port 1883, MQTT over WebSocket on port 9001
+  - dataproc (python image): publishes mock sensor readings to
+    sensors/raw/<id>, sensors/processed/<id> and sensors/status
+  - nginx-dashboard (nginx image): dashboard page on port 8080
 
---- replace with specific information about the meta-yocto-containers-demo layer ---
+No container image is rebuilt. The configuration files and the Python
+application are installed into /usr/share/iot-gateway and bind-mounted
+read-only into the stock containers.
+
+Recipes:
+
+  - recipes-demo/iot-gateway/iot-gateway-bundle_1.0.0.bb: bundles the three
+    images, pinned by digest, with the container-bundle class
+  - recipes-demo/iot-gateway/iot-gateway-assets_1.0.0.bb: configuration,
+    application, Quadlet files, and a first-boot service that imports the
+    bundled images into Podman storage
+  - recipes-demo/images/iot-gateway-image.bb: the gateway image
+  - conf/distro/include/iot-gateway.inc: Podman, crun and systemd settings
+
+Building and running
+--------------------
+
+1. Add this layer and its dependencies to your build:
+
+     bitbake-layers add-layer meta-yocto-containers-demo
+
+2. Add to conf/local.conf:
+
+     require conf/distro/include/iot-gateway.inc
+
+3. Build the image:
+
+     MACHINE=qemuarm64 bitbake iot-gateway-image
+
+   The images are multi-arch, so MACHINE=qemux86-64 also works.
+
+4. Boot it:
+
+     runqemu nographic iot-gateway-image
+
+5. From the build host, watch the sensor data:
+
+     mosquitto_sub -h 192.168.7.2 -t 'sensors/#' -v
+
+   and open http://192.168.7.2:8080 in a web browser. The dashboard page
+   loads mqtt.js from unpkg.com, so the browser needs Internet access.
+
+Without TAP networking, forward the ports through user mode networking by
+adding to conf/local.conf:
+
+     QB_SLIRP_OPT = "-netdev user,id=net0,hostfwd=tcp::1883-:1883,hostfwd=tcp::9001-:9001,hostfwd=tcp::8080-:8080"
+
+then run "runqemu slirp nographic iot-gateway-image" and use localhost
+instead of 192.168.7.2.
+
+On the gateway, check the containers with:
+
+     podman ps
+     systemctl status iot-mosquitto iot-nginx iot-dataproc
+
+
+Contributing
+============
+
+Please open a pull request at
+https://github.com/moto-timo/meta-yocto-containers-demo
+
+Maintainer: Tim Orling <tim.orling@konsulko.com>
