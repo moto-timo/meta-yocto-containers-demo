@@ -18,9 +18,14 @@ require ${BPN}-go-mods.inc
 inherit go-mod go-mod-update-modules
 
 CGO_ENABLED = "0"
+# -linkshared needs cgo, so link statically on every architecture
+GO_LINKSHARED = ""
 
 export GOEXPERIMENT = "jsonv2"
 
-GO_EXTRA_LDFLAGS = "-s -w -X ${GO_IMPORT}/pkg/version/app.ver=${PV}"
+GO_EXTRA_LDFLAGS = "-X ${GO_IMPORT}/pkg/version/app.ver=${PV}"
 
 BBCLASSEXTEND = "native nativesdk"
+
+# The sources in ${PN}-dev include bash scripts
+RDEPENDS:${PN}-dev += "bash"

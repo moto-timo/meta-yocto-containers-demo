@@ -18,7 +18,9 @@ require ${BPN}-go-mods.inc
 inherit go-mod go-mod-update-modules
 
 CGO_ENABLED = "0"
+# -linkshared needs cgo, so link statically on every architecture
+GO_LINKSHARED = ""
 
-GO_EXTRA_LDFLAGS = "-s -w -X main.version=${PV} -extldflags '-static'"
+GO_EXTRA_LDFLAGS = "-X main.version=${PV}"
 
 BBCLASSEXTEND = "native nativesdk"
