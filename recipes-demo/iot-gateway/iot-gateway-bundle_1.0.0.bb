@@ -19,7 +19,7 @@ CONTAINER_BUNDLES = "\
 #   skopeo inspect docker://registry.yocto.io/library/nginx:1.30 | jq -r '.Digest'
 # Key = image ref with '/' and ':' replaced by '_'.
 CONTAINER_DIGESTS[registry.yocto.io_library_mosquitto_2]  = "sha256:42114dd8744228f4085a9b3918a645e842c7ef51db276cacf8825b800eb81f13"
-CONTAINER_DIGESTS[registry.yocto.io_library_nginx_1.30]   = "sha256:e45cacce5716dcc93b4451506bc5584219d867b47ab40c806846dc4ba9da8b64"
+CONTAINER_DIGESTS[registry.yocto.io_library_nginx_1.30]   = "sha256:3dea95116f44b2513b6f7fda52c866793a2c15198a975926015769c4100c5ae8"
 CONTAINER_DIGESTS[registry.yocto.io_library_python_3]     = "sha256:8bf7d869b34e246fc69719b69efd707ba29e09587b5c0c1930c8c9a27f9db33c"
 
 # Runtime follows CONTAINER_PROFILE (podman) automatically; no autostart here
