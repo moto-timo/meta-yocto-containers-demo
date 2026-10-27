@@ -29,6 +29,11 @@ IMAGE_INSTALL:append = " \
     container-host-config \
 "
 
+# Trust the usual certificate authorities, for TLS from the gateway, for
+# example "podman pull" from a registry. The clock is set by
+# systemd-timesyncd, which is part of systemd.
+IMAGE_INSTALL:append = " ca-certificates"
+
 # Upstream container images (bundle) + runtime overlay assets & Quadlet units.
 # container-cross-install imports the bundle into podman storage at build time.
 IMAGE_INSTALL:append = " iot-gateway-bundle iot-gateway-assets"
