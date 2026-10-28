@@ -48,7 +48,8 @@ IMAGE_INSTALL:append = " \
 # --- Login -----------------------------------------------------------------
 # nonroot: root locked; "admin" logs in over SSH with IOT_GATEWAY_ADMIN_SSH_KEY
 # and has sudo. See README, "Profiles".
-PACKAGECONFIG ??= ""
+IOT_GATEWAY_PROFILE ??= "debug"
+PACKAGECONFIG ??= "${@'nonroot' if d.getVar('IOT_GATEWAY_PROFILE') in ('nonroot', 'hardened') else ''}"
 PACKAGECONFIG[nonroot] = ""
 IOT_GATEWAY_ADMIN_SSH_KEY ??= ""
 
@@ -84,6 +85,9 @@ iot_gateway_admin () {
 }
 
 python () {
+    if d.getVar('IOT_GATEWAY_PROFILE') not in ('debug', 'nonroot', 'hardened'):
+        bb.fatal("IOT_GATEWAY_PROFILE must be debug, nonroot or hardened, not %r"
+                 % d.getVar('IOT_GATEWAY_PROFILE'))
     if bb.utils.contains('PACKAGECONFIG', 'nonroot', True, False, d) \
             and not d.getVar('IOT_GATEWAY_ADMIN_SSH_KEY'):
         bb.fatal("PACKAGECONFIG nonroot needs IOT_GATEWAY_ADMIN_SSH_KEY, the "

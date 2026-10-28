@@ -45,3 +45,9 @@ INIT_MANAGER = "systemd"
 #     Dashboard : http://localhost:8080
 #     MQTT      : mosquitto_sub -h localhost -t 'sensors/#' -v
 #     WebSocket : ws://localhost:9001/mqtt
+
+# Security profile: debug (default), nonroot or hardened. See README.
+IOT_GATEWAY_PROFILE ??= "debug"
+
+# Dashboard web server: "nginx" or "caddy"
+IOT_GATEWAY_WEBSERVER ??= "nginx"

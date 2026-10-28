@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IoT Edge Gateway &mdash; Monitoring Dashboard</title>
+<script src="mqtt.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f172a;--card:#1e293b;--border:#334155;--text:#e2e8f0;
+      --muted:#94a3b8;--accent:#38bdf8;--green:#4ade80;--amber:#fbbf24;--red:#f87171}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);
+     min-height:100vh;padding:1rem}
+header{display:flex;align-items:center;gap:.75rem;margin-bottom:1.5rem}
+header h1{font-size:1.25rem;font-weight:600}
+.status{display:inline-flex;align-items:center;gap:.35rem;font-size:.8rem;
+        padding:.25rem .6rem;border-radius:9999px;background:var(--card);border:1px solid var(--border)}
+.status .dot{width:8px;height:8px;border-radius:50%}
+.dot.ok{background:var(--green)}.dot.err{background:var(--red)}.dot.wait{background:var(--amber)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:.75rem;padding:1.25rem}
+.card h2{font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem}
+.value{font-size:2.5rem;font-weight:700;line-height:1}
+.unit{font-size:1rem;color:var(--muted);margin-left:.25rem}
+.stats{display:flex;gap:1.5rem;margin-top:.75rem;font-size:.8rem;color:var(--muted)}
+.stats span{display:flex;flex-direction:column;gap:.1rem}
+.stats .label{font-size:.65rem;text-transform:uppercase;letter-spacing:.04em}
+.stats .num{color:var(--text);font-weight:500}
+canvas{margin-top:.75rem;width:100%!important;height:100px!important}
+.log-panel{margin-top:1.5rem}
+.log-panel h2{font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
+#log{background:var(--card);border:1px solid var(--border);border-radius:.75rem;padding:1rem;
+     font-family:"SF Mono",ui-monospace,monospace;font-size:.75rem;color:var(--muted);
+     max-height:180px;overflow-y:auto;line-height:1.6}
+#log .ts{color:var(--accent)}
+footer{margin-top:2rem;text-align:center;font-size:.7rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>IoT Edge Gateway</h1>
+  <div class="status" id="conn-status"><span class="dot wait"></span><span>Connecting</span></div>
+</header>
+
+<div class="grid" id="sensors"></div>
+
+<div class="log-panel">
+  <h2>Event log</h2>
+  <div id="log"></div>
+</div>
+
+<footer>Built with Yocto &bull; Mosquitto MQTT &bull; Podman containers</footer>
+
+<script src="dashboard.js"></script>
+</body>
+</html>

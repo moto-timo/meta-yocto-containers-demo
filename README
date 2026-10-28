@@ -85,8 +85,7 @@ Building and running
 
      mosquitto_sub -h 192.168.7.2 -t 'sensors/#' -v
 
-   and open http://192.168.7.2:8080 in a web browser. The dashboard page
-   loads mqtt.js from unpkg.com, so the browser needs Internet access.
+   and open http://192.168.7.2:8080 in a web browser.
 
 Without TAP networking, forward the ports through user mode networking by
 adding to conf/local.conf:
@@ -101,60 +100,70 @@ On the gateway, check the containers with:
      podman ps
      systemctl status iot-mosquitto iot-nginx iot-dataproc
 
-Login
------
+Profiles
+--------
 
-By default, root logs in on the console with no password. For a gateway that
-is more than a demo, build with PACKAGECONFIG "nonroot":
+The image comes in three security profiles, set in conf/local.conf:
 
-  - root is locked and no account has a password, so nobody can log in on
-    the console;
-  - the image runs an OpenSSH server, and the user "admin" logs in with an
-    SSH key;
-  - admin runs commands as root with sudo, without a password, so the key
-    gives root access. Keep its private key safe.
+     IOT_GATEWAY_PROFILE = "hardened"   # debug (default), nonroot or hardened
+     IOT_GATEWAY_WEBSERVER = "caddy"    # nginx (default) or caddy
 
-Make a key on the machine that will connect to the gateway:
+  debug     root logs in on the console with no password; the dashboard is
+            plain HTTP on port 8080 and the MQTT broker accepts anonymous
+            clients on ports 1883 and 9001 from any host. For demos only.
+
+  nonroot   root is locked and no account has a password. The image runs an
+            OpenSSH server, and the user "admin" logs in with an SSH key and
+            uses sudo without a password, so the key gives root access.
+            The services are as in debug.
+
+  hardened  nonroot, plus:
+              - the dashboard is HTTPS only (TLS 1.3) on port 8443, behind a
+                login, with strict security headers (HSTS, Content-Security-
+                Policy without inline scripts, nosniff, no framing);
+              - the dashboard's MQTT over WebSocket goes through the web
+                server, and the broker's plain MQTT and WebSocket listeners
+                accept only this host;
+              - other hosts use MQTT over TLS on port 8883 with a password;
+              - each MQTT account may only use its topics: "dataproc"
+                publishes, "viewer" and the dashboard only read.
+
+With nonroot and hardened, make an SSH key on the machine that will connect
+to the gateway, and add its public key:
 
      ssh-keygen -t ed25519 -f ~/.ssh/iot-gateway_ed25519
-
-and add its public key to conf/local.conf:
-
-     PACKAGECONFIG:pn-iot-gateway-image = "nonroot"
      IOT_GATEWAY_ADMIN_SSH_KEY = "ssh-ed25519 AAAA... admin@host"
 
-The build stops with an error if the key is missing. Then log in with:
+then log in with "ssh -i ~/.ssh/iot-gateway_ed25519 admin@<gateway>".
 
-     ssh -i ~/.ssh/iot-gateway_ed25519 admin@<gateway address>
-
-
-Network services (mqtt-auth)
-----------------------------
-
-By default the dashboard is plain HTTP on port 8080, and the MQTT broker
-accepts anonymous clients on ports 1883 and 9001 from any host. Build with
-PACKAGECONFIG "mqtt-auth" of iot-gateway-assets to harden them:
-
-  - the dashboard is HTTPS only, on port 8443, and asks for a login;
-  - the dashboard's MQTT over WebSocket goes through nginx to the broker,
-    whose plain MQTT and WebSocket listeners accept only this host;
-  - other hosts use MQTT over TLS on port 8883 with a password;
-  - each MQTT account may only use its topics: "dataproc" publishes,
-    "viewer" and the dashboard only read.
-
-On its first boot the gateway makes a self-signed certificate and random
-passwords, so no secret is in the image. They are in /etc/iot-gateway, which
-only root can read; the logins for people are in /etc/iot-gateway/credentials.
-Add to conf/local.conf:
-
-     PACKAGECONFIG:pn-iot-gateway-assets = "mqtt-auth"
-
-Together with PACKAGECONFIG "nonroot" of the image, this is the hardened
-gateway. On the gateway, as admin:
+On its first boot a hardened gateway makes a self-signed certificate and
+random passwords, so no secret is in the image. They are in /etc/iot-gateway,
+which only root can read; the logins for people are in
+/etc/iot-gateway/credentials:
 
      sudo cat /etc/iot-gateway/credentials
      sudo mosquitto_sub -h localhost -p 8883 \
          --cafile /etc/iot-gateway/tls/cert.pem -u viewer -P <password> -t 'sensors/#'
+
+The profiles set PACKAGECONFIG "nonroot" of iot-gateway-image and
+PACKAGECONFIG "mqtt-auth" of iot-gateway-assets, which you can also set
+directly. A profile removes the empty-root-password image features even when
+the build adds them, for example through the root-login-with-empty-password
+configuration fragment.
+
+Web server
+----------
+
+nginx comes from registry.yocto.io/library/nginx. Caddy comes from
+quay.io/ticotimo/caddy, built with app-container-caddy of
+meta-virtualization; accept its flags in conf/local.conf:
+
+     CONTAINER_FLAGS_ACCEPTED:pn-iot-gateway-bundle += "quay.io/ticotimo/caddy"
+
+With the hardened profile Caddy also turns off its admin API, so its
+configuration cannot change while it runs, serves HTTP/3, and stores the
+dashboard login as a bcrypt hash. Both web servers serve the dashboard's
+mqtt.js from the gateway: the browser loads no code from the Internet.
 
 
 Contributing

@@ -1,0 +1,21 @@
+# Monitoring dashboard - Caddy, our page bind-mounted as the site.
+[Unit]
+Description=IoT Monitoring Dashboard (Caddy + overlay page)
+After=iot-mosquitto.service
+Wants=iot-mosquitto.service
+
+[Container]
+ContainerName=caddy-dashboard
+Image=quay.io/ticotimo/caddy:2.11.7
+Pull=never
+# Host networking: Caddy binds its listen port directly on the host.
+Network=host
+Volume=/usr/share/iot-gateway/Caddyfile:/etc/caddy/Caddyfile:ro
+Volume=/usr/share/iot-gateway/www:/var/www/html:ro
+
+[Service]
+Restart=always
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target default.target

@@ -1,0 +1,12 @@
+# Dashboard on plain HTTP port 8080 (no mqtt-auth)
+{
+	# No admin API: config cannot change at run time
+	admin off
+	auto_https off
+}
+
+:8080 {
+	root * /var/www/html
+	file_server
+	header -Server
+}

@@ -1,0 +1,35 @@
+# mqtt-auth: HTTPS only (TLS 1.3, HTTP/3), bcrypt login, strict headers;
+# /mqtt proxies to the local broker.
+{
+	# No admin API: config cannot change at run time
+	admin off
+	# Certificate from iot-gateway-secrets: no ACME, no :80 redirect
+	auto_https off
+	servers {
+		protocols h1 h2 h3
+	}
+}
+
+https://:8443 {
+	tls /etc/caddy/tls/cert.pem /etc/caddy/tls/key.pem {
+		protocols tls1.3
+	}
+
+	basic_auth {
+		admin {$IOT_GATEWAY_ADMIN_HASH}
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	reverse_proxy /mqtt 127.0.0.1:9001
+
+	root * /var/www/html
+	file_server
+}
