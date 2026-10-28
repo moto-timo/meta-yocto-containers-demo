@@ -10,6 +10,8 @@ Image=docker.io/library/nginx:1.30
 Pull=never
 # Host networking: nginx binds its listen port directly on the host.
 Network=host
+# Writable /tmp for uid 65532; without mode=1777 it gets EACCES.
+Tmpfs=/tmp:rw,mode=1777
 # Overlay the main config (no listen 80 / no user directive) + a server block
 # on unprivileged 8080 for the nonroot image, plus our dashboard page.
 Volume=/usr/share/iot-gateway/nginx.conf:/etc/nginx/nginx.conf:ro
