@@ -11,8 +11,8 @@ Yocto Project and meta-virtualization:
   - grype and trivy: vulnerability scanners for container images
 
 The demos are not hardened for production use. For example, the gateway's
-MQTT broker accepts anonymous connections and the image allows an empty root
-password.
+MQTT broker accepts anonymous connections and, by default, the image allows
+an empty root password (see "Login" below).
 
 
 Dependencies
@@ -100,6 +100,32 @@ On the gateway, check the containers with:
 
      podman ps
      systemctl status iot-mosquitto iot-nginx iot-dataproc
+
+Login
+-----
+
+By default, root logs in on the console with no password. For a gateway that
+is more than a demo, build with PACKAGECONFIG "nonroot":
+
+  - root is locked and no account has a password, so nobody can log in on
+    the console;
+  - the image runs an OpenSSH server, and the user "admin" logs in with an
+    SSH key;
+  - admin runs commands as root with sudo, without a password, so the key
+    gives root access. Keep its private key safe.
+
+Make a key on the machine that will connect to the gateway:
+
+     ssh-keygen -t ed25519 -f ~/.ssh/iot-gateway_ed25519
+
+and add its public key to conf/local.conf:
+
+     PACKAGECONFIG:pn-iot-gateway-image = "nonroot"
+     IOT_GATEWAY_ADMIN_SSH_KEY = "ssh-ed25519 AAAA... admin@host"
+
+The build stops with an error if the key is missing. Then log in with:
+
+     ssh -i ~/.ssh/iot-gateway_ed25519 admin@<gateway address>
 
 
 Contributing
