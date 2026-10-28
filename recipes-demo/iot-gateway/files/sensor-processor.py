@@ -131,6 +131,9 @@ def main():
     )
     client.on_connect = on_connect
     client.on_message = on_message
+    # Set with mqtt-auth
+    if os.environ.get("MQTT_USERNAME"):
+        client.username_pw_set(os.environ["MQTT_USERNAME"], os.environ.get("MQTT_PASSWORD"))
 
     # Retry until the broker is reachable
     while running:

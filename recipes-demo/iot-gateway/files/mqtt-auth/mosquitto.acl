@@ -1,0 +1,10 @@
+# Anonymous: only the dashboard, via the web server's login. Read only.
+topic read sensors/#
+
+# Sensor processor
+user dataproc
+topic readwrite sensors/#
+
+# Other hosts, TLS on 8883
+user viewer
+topic read sensors/#

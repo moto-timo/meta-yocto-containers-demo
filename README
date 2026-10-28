@@ -128,6 +128,35 @@ The build stops with an error if the key is missing. Then log in with:
      ssh -i ~/.ssh/iot-gateway_ed25519 admin@<gateway address>
 
 
+Network services (mqtt-auth)
+----------------------------
+
+By default the dashboard is plain HTTP on port 8080, and the MQTT broker
+accepts anonymous clients on ports 1883 and 9001 from any host. Build with
+PACKAGECONFIG "mqtt-auth" of iot-gateway-assets to harden them:
+
+  - the dashboard is HTTPS only, on port 8443, and asks for a login;
+  - the dashboard's MQTT over WebSocket goes through nginx to the broker,
+    whose plain MQTT and WebSocket listeners accept only this host;
+  - other hosts use MQTT over TLS on port 8883 with a password;
+  - each MQTT account may only use its topics: "dataproc" publishes,
+    "viewer" and the dashboard only read.
+
+On its first boot the gateway makes a self-signed certificate and random
+passwords, so no secret is in the image. They are in /etc/iot-gateway, which
+only root can read; the logins for people are in /etc/iot-gateway/credentials.
+Add to conf/local.conf:
+
+     PACKAGECONFIG:pn-iot-gateway-assets = "mqtt-auth"
+
+Together with PACKAGECONFIG "nonroot" of the image, this is the hardened
+gateway. On the gateway, as admin:
+
+     sudo cat /etc/iot-gateway/credentials
+     sudo mosquitto_sub -h localhost -p 8883 \
+         --cafile /etc/iot-gateway/tls/cert.pem -u viewer -P <password> -t 'sensors/#'
+
+
 Contributing
 ============
 

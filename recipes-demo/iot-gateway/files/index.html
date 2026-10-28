@@ -63,7 +63,10 @@ const gridEl = document.getElementById("sensors");
 /* --- MQTT ------------------------------------------------------------- */
 const wsHost = location.hostname || "localhost";
 const wsPort = 9001;
-const url    = `ws://${wsHost}:${wsPort}/mqtt`;
+// Over HTTPS (mqtt-auth), use the web server's /mqtt proxy.
+const url    = location.protocol === "https:"
+  ? `wss://${location.host}/mqtt`
+  : `ws://${wsHost}:${wsPort}/mqtt`;
 
 log("Connecting to MQTT broker at " + url);
 
