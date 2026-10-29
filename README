@@ -58,6 +58,8 @@ Recipes:
   - recipes-demo/images/iot-gateway-image.bb: the gateway image. It inherits
     container-cross-install, which imports the bundled images into Podman
     storage at build time
+  - conf/distro/iot-gateway.conf: the distro, Poky plus a Podman host
+    (meta-virt-host.conf), systemd and what the profile needs
   - conf/distro/include/iot-gateway.inc: Podman, crun and systemd settings
 
 Building and running
@@ -67,9 +69,11 @@ Building and running
 
      bitbake-layers add-layer meta-yocto-containers-demo
 
-2. Add to conf/local.conf:
+2. Select the distro:
 
-     require conf/distro/include/iot-gateway.inc
+     bitbake-config-build enable-fragment distro/iot-gateway
+
+   or set DISTRO = "iot-gateway" in conf/local.conf.
 
 3. Build the image:
 

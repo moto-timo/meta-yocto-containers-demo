@@ -1,7 +1,7 @@
 # IoT Edge Gateway distro configuration snippet
 #
-# Include this from your distro conf or local.conf:
-#   require conf/distro/include/iot-gateway.inc
+# Required by conf/distro/iot-gateway.conf; other distros can require it
+# from their distro conf or local.conf.
 #
 # It enables the necessary DISTRO_FEATURES and selects Podman as the
 # container engine via the meta-virtualization container profile.
