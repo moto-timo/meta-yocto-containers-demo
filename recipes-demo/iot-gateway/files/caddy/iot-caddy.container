@@ -6,7 +6,10 @@ Wants=iot-mosquitto.service
 
 [Container]
 ContainerName=caddy-dashboard
-Image=quay.io/ticotimo/caddy:2.11.7
+# Imported into podman storage at build time by container-cross-install, which
+# drops the registry: quay.io/ticotimo/caddy:2.11 is stored under the
+# docker.io/library namespace.
+Image=docker.io/library/caddy:2.11
 Pull=never
 # Host networking: Caddy binds its listen port directly on the host.
 Network=host
