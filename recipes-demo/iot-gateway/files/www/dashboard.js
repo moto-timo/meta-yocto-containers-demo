@@ -10,28 +10,43 @@ const gridEl = document.getElementById("sensors");
 /* --- MQTT ------------------------------------------------------------- */
 const wsHost = location.hostname || "localhost";
 const wsPort = 9001;
-// Over HTTPS (mqtt-auth), use the web server's /mqtt proxy.
-const url    = location.protocol === "https:"
+// Over HTTPS (mqtt-auth), use the web server's /mqtt proxy, and log in to
+// the broker with mqtt.json, which is served behind the dashboard login.
+// The WebSocket itself has no login: Safari does not send it there.
+const secure = location.protocol === "https:";
+const url    = secure
   ? `wss://${location.host}/mqtt`
   : `ws://${wsHost}:${wsPort}/mqtt`;
 
 log("Connecting to MQTT broker at " + url);
 
-const client = mqtt.connect(url, {
-  reconnectPeriod: 2000,
-  connectTimeout: 5000,
-});
+(secure
+  ? fetch("mqtt.json", { cache: "no-store" }).then((r) => {
+      if (!r.ok) throw new Error("mqtt.json: HTTP " + r.status);
+      return r.json();
+    })
+  : Promise.resolve({})
+).then(connect, (e) => { setStatus("err", "Error"); log("Error: " + e.message); });
 
-client.on("connect", () => {
-  setStatus("ok", "Connected");
-  log("MQTT connected");
-  client.subscribe(["sensors/raw/#", "sensors/processed/#", "sensors/status"]);
-});
-client.on("reconnect", () => setStatus("wait", "Reconnecting"));
-client.on("offline",   () => setStatus("err",  "Offline"));
-client.on("error", (e) => { setStatus("err", "Error"); log("Error: " + e.message); });
+function connect(login) {
+  const client = mqtt.connect(url, {
+    ...login,
+    reconnectPeriod: 2000,
+    connectTimeout: 5000,
+  });
 
-client.on("message", (topic, payload) => {
+  client.on("connect", () => {
+    setStatus("ok", "Connected");
+    log("MQTT connected");
+    client.subscribe(["sensors/raw/#", "sensors/processed/#", "sensors/status"]);
+  });
+  client.on("reconnect", () => setStatus("wait", "Reconnecting"));
+  client.on("offline",   () => setStatus("err",  "Offline"));
+  client.on("error", (e) => { setStatus("err", "Error"); log("Error: " + e.message); });
+  client.on("message", onMessage);
+}
+
+function onMessage(topic, payload) {
   try {
     const data = JSON.parse(payload.toString());
     const parts = topic.split("/");
@@ -44,7 +59,7 @@ client.on("message", (topic, payload) => {
       log(`Heartbeat: uptime=${data.uptime_ticks} sensors=[${data.sensors}]`);
     }
   } catch (_) { /* ignore malformed */ }
-});
+}
 
 /* --- Handlers --------------------------------------------------------- */
 function ensureSensor(id, data) {

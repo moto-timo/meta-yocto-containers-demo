@@ -1,9 +1,10 @@
-# Anonymous: only the dashboard, via the web server's login. Read only.
-topic read sensors/#
-
 # Sensor processor
 user dataproc
 topic readwrite sensors/#
+
+# Dashboard page, which reads its password from mqtt.json behind the login
+user dashboard
+topic read sensors/#
 
 # Other hosts, TLS on 8883
 user viewer

@@ -1,5 +1,5 @@
 # mqtt-auth: HTTPS only (TLS 1.3, HTTP/3), bcrypt login, strict headers;
-# /mqtt proxies to the local broker.
+# /mqtt proxies to the local broker, which checks the MQTT password.
 {
 	# No admin API: config cannot change at run time
 	admin off
@@ -15,7 +15,10 @@ https://:8443 {
 		protocols tls1.3
 	}
 
-	basic_auth {
+	# Safari does not send the login with the WebSocket: /mqtt has none,
+	# the page sends the MQTT password from mqtt.json instead.
+	@login not path /mqtt
+	basic_auth @login {
 		admin {$IOT_GATEWAY_ADMIN_HASH}
 	}
 
@@ -28,8 +31,18 @@ https://:8443 {
 		-Server
 	}
 
-	reverse_proxy /mqtt 127.0.0.1:9001
-
-	root * /var/www/html
-	file_server
+	handle /mqtt {
+		reverse_proxy 127.0.0.1:9001
+	}
+	handle /mqtt.json {
+		header Cache-Control no-store
+		root * /etc/caddy/dashboard
+		file_server
+	}
+	handle {
+		# Check for a new page on each load (the build dates the files 2011)
+		header Cache-Control no-cache
+		root * /var/www/html
+		file_server
+	}
 }
