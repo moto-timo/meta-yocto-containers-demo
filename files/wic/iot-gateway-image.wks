@@ -1,0 +1,9 @@
+# short-description: EFI (systemd-boot) disk for UEFI arm64 VMs (UTM, qemu + edk2)
+# long-description: ESP with systemd-boot + kernel, ext4 rootfs. The kernel
+# boots without an initramfs because virtio-blk and ext4 are built in.
+
+part /boot --source bootimg_efi --sourceparams="loader=systemd-boot" --label boot --active --align 1024 --use-uuid
+
+part / --source rootfs --fstype=ext4 --label root --align 1024 --use-uuid
+
+bootloader --ptable gpt --timeout=3 --append="rootwait rootfstype=ext4 console=ttyAMA0,115200 console=tty0"
